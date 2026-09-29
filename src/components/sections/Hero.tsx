@@ -6,6 +6,7 @@ import { ArrowDown, Sparkles, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { useSiteData } from '@/lib/store'
 import { stats } from '@/lib/data'
 
 interface Node {
@@ -20,6 +21,7 @@ interface Node {
 const NODE_COLORS = ['#ff6a2e', '#e2570e', '#2dd4bf', '#f4f1ea']
 
 export function Hero({ className }: { className?: string }) {
+  const { heroImage } = useSiteData()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const nodesRef = useRef<Node[]>([])
   const mouseRef = useRef({ x: -9999, y: -9999, active: false })
@@ -290,7 +292,7 @@ export function Hero({ className }: { className?: string }) {
 
               <div className="relative overflow-hidden rounded-2xl border border-line">
                 <img
-                  src="/portfolio.png"
+                  src={heroImage}
                   alt="Khalid Mubarek — video editor"
                   className="aspect-[4/5] w-full object-cover"
                   loading="eager"

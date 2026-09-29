@@ -1,69 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Film,
-  Sparkles,
-  Palette,
-  LayoutGrid,
-  Clapperboard,
-  Cpu,
-  BarChart3,
-  Target,
-  Users,
-  PenTool,
-  Image as ImageIcon,
-  Video,
-  Camera,
-  Music,
-  Radio,
-  Box,
-  ScissorsLineDashed,
-  FileText,
-} from 'lucide-react'
-import { skills, skillCategories } from '@/lib/data'
+import { Film, Sparkles, Palette, LayoutGrid, Clapperboard, Cpu, Box } from 'lucide-react'
+import { useSiteData } from '@/lib/store'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SectionDivider } from '@/components/ui/Separator'
 import { cn } from '@/lib/utils'
 
-const categoryIcons: Record<string, React.ReactNode> = {
-  editing: <Film className="h-4 w-4" />,
-  motion: <Sparkles className="h-4 w-4" />,
-  color: <Palette className="h-4 w-4" />,
-  social: <LayoutGrid className="h-4 w-4" />,
-  creative: <Clapperboard className="h-4 w-4" />,
-  technical: <Cpu className="h-4 w-4" />,
-}
-
-const skillIcons: Record<string, React.ReactNode> = {
-  'Adobe Premiere Pro': <Film className="h-4 w-4" />,
-  'Adobe After Effects': <Sparkles className="h-4 w-4" />,
-  'DaVinci Resolve': <Palette className="h-4 w-4" />,
-  'CapCut Pro': <ScissorsLineDashed className="h-4 w-4" />,
-  'Adobe Photoshop': <ImageIcon className="h-4 w-4" />,
-  'Adobe Illustrator': <PenTool className="h-4 w-4" />,
-  'Cinema 4D Lite': <Box className="h-4 w-4" />,
-  'Content Strategy': <Target className="h-4 w-4" />,
-  'Analytics & Growth': <BarChart3 className="h-4 w-4" />,
-  'Multi-Platform Management': <LayoutGrid className="h-4 w-4" />,
-  'Community Building': <Users className="h-4 w-4" />,
-  Cinematography: <Video className="h-4 w-4" />,
-  Directing: <Clapperboard className="h-4 w-4" />,
-  'Script Writing': <FileText className="h-4 w-4" />,
-  Photography: <Camera className="h-4 w-4" />,
-  'Sound Design': <Music className="h-4 w-4" />,
-  'Live Streaming': <Radio className="h-4 w-4" />,
+const typeIcons: Record<string, React.ReactNode> = {
+  'Video Editing': <Film className="h-4 w-4" />,
+  'Motion Graphics': <Sparkles className="h-4 w-4" />,
+  'Color Grading': <Palette className="h-4 w-4" />,
+  'Social Media': <LayoutGrid className="h-4 w-4" />,
+  'Creative Direction': <Clapperboard className="h-4 w-4" />,
+  'Technical': <Cpu className="h-4 w-4" />,
 }
 
 const ease = [0.16, 1, 0.3, 1] as const
 
 export function Skills() {
-  const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [activeType, setActiveType] = useState<string>('all')
+  const { skills } = useSiteData()
 
-  const categories = ['all', ...skillCategories.map((c) => c.id)]
-  const filteredSkills =
-    activeCategory === 'all' ? skills : skills.filter((s) => s.category === activeCategory)
+  const types = useMemo(() => Array.from(new Set(skills.map((s) => s.type))), [skills])
+  const filteredSkills = activeType === 'all' ? skills : skills.filter((s) => s.type === activeType)
 
   return (
     <section id="skills" className="u-section relative" aria-labelledby="skills-title">
@@ -89,21 +50,21 @@ export function Skills() {
           role="tablist"
           aria-label="Skill categories"
         >
-          {categories.map((cat) => (
+          {['all', ...types].map((cat) => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => setActiveType(cat)}
               role="tab"
-              aria-selected={activeCategory === cat}
+              aria-selected={activeType === cat}
               className={cn(
                 'flex items-center gap-2 rounded-full border px-4 py-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] transition-all duration-300',
-                activeCategory === cat
+                activeType === cat
                   ? 'border-flame bg-flame text-on-flame'
                   : 'border-line text-ink-soft hover:border-flame/50 hover:text-flame'
               )}
             >
-              {cat !== 'all' && categoryIcons[cat]}
-              {cat === 'all' ? 'All skills' : skillCategories.find((c) => c.id === cat)?.label}
+              {cat !== 'all' && typeIcons[cat]}
+              {cat === 'all' ? 'All skills' : cat}
             </button>
           ))}
         </motion.div>
@@ -111,7 +72,7 @@ export function Skills() {
         {/* Grid */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeCategory}
+            key={activeType}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
@@ -129,24 +90,24 @@ export function Skills() {
               >
                 <div className="mb-4 flex items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-raised text-flame">
-                    {skillIcons[skill.name] || categoryIcons[skill.category]}
+                    {typeIcons[skill.type] || <Sparkles className="h-4 w-4" />}
                   </span>
                   <div>
                     <h3 className="font-display text-[15px] font-semibold leading-tight text-ink">{skill.name}</h3>
-                    <span className="mono-tag">{skillCategories.find((c) => c.id === skill.category)?.label}</span>
+                    <span className="mono-tag">{skill.type}</span>
                   </div>
-                  <span className="ml-auto font-mono text-sm font-medium text-flame">{skill.proficiency}%</span>
+                  <span className="ml-auto font-mono text-sm font-medium text-flame">{skill.percent}%</span>
                 </div>
 
-                {skill.description && (
-                  <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-ink-soft">{skill.description}</p>
+                {skill.detail && (
+                  <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-ink-soft">{skill.detail}</p>
                 )}
 
                 {/* Proficiency */}
-                <div className="h-1 overflow-hidden rounded-full bg-raised" role="progressbar" aria-valuenow={skill.proficiency} aria-valuemin={0} aria-valuemax={100} aria-label={`${skill.name} proficiency`}>
+                <div className="h-1 overflow-hidden rounded-full bg-raised" role="progressbar" aria-valuenow={skill.percent} aria-valuemin={0} aria-valuemax={100} aria-label={`${skill.name} proficiency`}>
                   <motion.div
                     initial={{ width: 0 }}
-                    whileInView={{ width: `${skill.proficiency}%` }}
+                    whileInView={{ width: `${skill.percent}%` }}
                     viewport={{ once: true, margin: '-40px' }}
                     transition={{ duration: 1.1, delay: 0.2 + i * 0.04, ease }}
                     className="h-full rounded-full bg-gradient-to-r from-flame-deep to-flame"

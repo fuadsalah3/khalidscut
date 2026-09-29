@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, ArrowUpRight, Tv, Clapperboard, Image as ImageIcon, Youtube, Film, Globe } from 'lucide-react'
-import { projects } from '@/lib/data'
+import { useSiteData } from '@/lib/store'
 import { Badge } from '@/components/ui/Badge'
 import { VideoEmbed } from '@/components/ui/VideoEmbed'
 import { SectionHeader } from '@/components/ui/SectionHeader'
@@ -22,6 +22,7 @@ const ease = [0.16, 1, 0.3, 1] as const
 
 export function Work() {
   const [activeCategory, setActiveCategory] = useState<string>('all')
+  const { projects } = useSiteData()
 
   const categories = ['all', ...Array.from(new Set(projects.map((p) => p.category)))]
   const filteredProjects =
@@ -91,7 +92,7 @@ export function Work() {
               >
                 {/* Thumb — real video embed when available, styled poster otherwise */}
                 {project.videoId ? (
-                  <VideoEmbed videoId={project.videoId} title={project.title} />
+                  <VideoEmbed videoId={project.videoId as string} title={project.title} />
                 ) : (
                   <div className="relative aspect-video overflow-hidden bg-raised">
                     <div className="bg-grid absolute inset-0 opacity-60" aria-hidden="true" />
@@ -113,22 +114,18 @@ export function Work() {
                       <h3 className="font-display text-[15px] font-semibold leading-snug text-ink transition-colors group-hover:text-flame">
                         {project.title}
                       </h3>
-                      <p className="mt-0.5 text-sm text-ink-soft">{project.client}</p>
+                      <p className="mt-0.5 text-sm text-ink-soft">{project.subtitle}</p>
                     </div>
                     <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-ink-faint transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-flame" aria-hidden="true" />
                   </div>
                   <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-ink-soft">{project.description}</p>
                   <div className="mt-4 flex flex-wrap gap-1.5">
-                    {project.tags.slice(0, 3).map((tag) => (
-                      <span key={tag} className="rounded border border-line px-2 py-0.5 text-[11px] text-ink-soft">
-                        {tag}
-                      </span>
-                    ))}
-                    {project.tags.length > 3 && (
-                      <span className="rounded border border-line px-2 py-0.5 text-[11px] text-ink-faint">
-                        +{project.tags.length - 3}
-                      </span>
-                    )}
+                    <span className="rounded border border-line px-2 py-0.5 text-[11px] text-ink-soft">
+                      {project.category}
+                    </span>
+                    <span className="rounded border border-line px-2 py-0.5 text-[11px] text-ink-soft">
+                      {project.year}
+                    </span>
                   </div>
                 </div>
 

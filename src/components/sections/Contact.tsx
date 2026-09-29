@@ -2,22 +2,10 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Mail,
-  Phone,
-  MapPin,
-  Send,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-  Instagram,
-  Linkedin,
-  Youtube,
-  Twitter,
-  Music,
-  ArrowUpRight,
-} from 'lucide-react'
-import { contactInfo, socialLinks } from '@/lib/data'
+import { Mail, MapPin, Send, Loader2, CheckCircle, AlertCircle, Send as SendIcon, ArrowUpRight } from 'lucide-react'
+import { useSiteData } from '@/lib/store'
+import { CONTACT_EMAIL, CONTACT_TELEGRAM, TELEGRAM_USERNAME } from '@/lib/content'
+import { SocialIcon } from '@/components/ui/SocialIcon'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -48,11 +36,26 @@ export function Contact() {
     if (!validateForm()) return
 
     setStatus('submitting')
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    // Replace with a real endpoint in production
+    try {
+      // Serverless endpoint delivers to Telegram + email.
+      // If it's unavailable (e.g. static preview), fall back to the visitor's
+      // mail client with the message pre-addressed to both destinations.
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+      if (!res.ok) throw new Error('send failed')
+    } catch {
+      const body = encodeURIComponent(
+        `Name: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}\n\n— sent from khalidscut contact form`
+      )
+      window.open(CONTACT_TELEGRAM, '_blank', 'noopener')
+      window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(formData.subject)}&body=${body}`
+    }
     setStatus('success')
     setFormData({ name: '', email: '', subject: '', message: '' })
-    setTimeout(() => setStatus('idle'), 5000)
+    setTimeout(() => setStatus('idle'), 6000)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -63,20 +66,22 @@ export function Contact() {
     }
   }
 
+  const { socials } = useSiteData()
+
   const contactCards = [
     {
       icon: Mail,
       label: 'Email',
-      value: contactInfo.email,
-      href: `mailto:${contactInfo.email}`,
+      value: CONTACT_EMAIL,
+      href: `mailto:${CONTACT_EMAIL}`,
     },
     {
-      icon: Phone,
-      label: 'Phone',
-      value: contactInfo.phone[0],
-      href: `tel:${contactInfo.phone[0].replace(/\s+/g, '')}`,
+      icon: SendIcon,
+      label: 'Telegram',
+      value: `@${TELEGRAM_USERNAME}`,
+      href: CONTACT_TELEGRAM,
     },
-    { icon: MapPin, label: 'Location', value: contactInfo.location, href: '#contact' },
+    { icon: MapPin, label: 'Location', value: 'Addis Ababa, Ethiopia', href: '#contact' },
   ]
 
   return (
@@ -121,17 +126,17 @@ export function Contact() {
             <div className="panel p-5">
               <span className="mono-tag mb-4 block">Connect socially</span>
               <div className="grid grid-cols-3 gap-2.5">
-                {socialLinks.map((social) => (
+                {socials.map((social) => (
                   <a
-                    key={social.platform}
+                    key={social.id}
                     href={social.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={social.label}
                     className="group flex flex-col items-center gap-2 rounded-xl border border-line px-3 py-4 text-ink-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-flame/40 hover:text-flame"
                   >
-                    {getSocialIcon(social.icon)}
-                    <span className="text-center text-[11px] font-medium">{social.platform}</span>
+                    <SocialIcon id={social.id} className="h-5 w-5" />
+                    <span className="text-center text-[11px] font-medium">{social.label}</span>
                   </a>
                 ))}
               </div>
@@ -278,15 +283,4 @@ export function Contact() {
       </div>
     </section>
   )
-}
-
-function getSocialIcon(iconName: string) {
-  const icons: Record<string, React.ReactNode> = {
-    instagram: <Instagram className="h-5 w-5" />,
-    linkedin: <Linkedin className="h-5 w-5" />,
-    youtube: <Youtube className="h-5 w-5" />,
-    twitter: <Twitter className="h-5 w-5" />,
-    music: <Music className="h-5 w-5" />,
-  }
-  return icons[iconName] || <Instagram className="h-5 w-5" />
 }

@@ -5,7 +5,7 @@ import { Film, Sparkles, Award, Globe } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { SectionHeader } from '@/components/ui/SectionHeader'
-import { bio, skillCategories } from '@/lib/data'
+import { useSiteData } from '@/lib/store'
 
 const specialties = [
   { icon: Film, title: 'Video Editing', desc: 'Premiere Pro, DaVinci, CapCut — broadcast to short-form' },
@@ -50,6 +50,8 @@ const categorySkills: Record<string, string[]> = {
 const ease = [0.16, 1, 0.3, 1] as const
 
 export function About() {
+  const { bio } = useSiteData()
+
   return (
     <section id="about" className="u-section relative" aria-labelledby="about-title">
       <div className="u-container">
@@ -152,16 +154,18 @@ export function About() {
 
               <span className="mono-tag mb-4 mt-8 block">Toolkit snapshot</span>
               <div className="space-y-3">
-                {skillCategories.slice(0, 3).map((cat) => (
-                  <div key={cat.id} className="flex flex-wrap items-center gap-2">
-                    <span className="w-full text-[13px] font-medium capitalize text-ink">{cat.label}</span>
-                    {categorySkills[cat.id]?.map((skill) => (
-                      <span key={skill} className="rounded border border-line px-2 py-0.5 text-xs text-ink-soft">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                ))}
+                {Object.entries(categorySkills)
+                  .slice(0, 3)
+                  .map(([type, list]) => (
+                    <div key={type} className="flex flex-wrap items-center gap-2">
+                      <span className="w-full text-[13px] font-medium capitalize text-ink">{type}</span>
+                      {list.map((skill) => (
+                        <span key={skill} className="rounded border border-line px-2 py-0.5 text-xs text-ink-soft">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
               </div>
 
               <div className="mt-auto pt-8">

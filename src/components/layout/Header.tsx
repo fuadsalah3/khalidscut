@@ -44,7 +44,7 @@ export function Header() {
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-flame text-on-flame transition-transform duration-500 group-hover:rotate-[15deg]">
               <Clapperboard className="h-5 w-5" aria-hidden="true" />
             </span>
-            <span className="font-display text-base font-bold tracking-tight md:text-lg">
+            <span className="font-display text-base font-bold tracking-tight text-ink md:text-lg">
               KHALID<span className="text-flame">.</span>MUBAREK
             </span>
           </a>
