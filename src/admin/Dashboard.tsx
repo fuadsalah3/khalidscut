@@ -70,11 +70,13 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
         projects: { ...prev.projects, ...next.projects },
       }
       localStorage.setItem('khalidscut:overrides', JSON.stringify(merged))
-      await fetch('/api/overrides', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(merged),
-      }).catch(() => undefined) // static hosting — localStorage still applies
+      if (!import.meta.env.DEV) {
+        await fetch('/api/overrides', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(merged),
+        }).catch(() => undefined) // static hosting — localStorage still applies
+      }
     } catch {
       /* storage full / private mode */
     } finally {

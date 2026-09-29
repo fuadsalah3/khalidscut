@@ -66,6 +66,9 @@ function loadLocal(): Overrides {
 }
 
 async function loadRemote(): Promise<Overrides> {
+  /* The overrides API only exists on the Vercel deployment. In local dev the
+   * request would fail with 404/500 and spam the console, so skip it. */
+  if (import.meta.env.DEV) return {}
   try {
     const res = await fetch(`${API_ENDPOINT}?t=${Date.now()}`, { cache: 'no-store' })
     if (res.ok) {

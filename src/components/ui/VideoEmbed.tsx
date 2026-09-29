@@ -36,18 +36,13 @@ export function VideoEmbed({ videoId, title, className }: VideoEmbedProps) {
           className="absolute inset-0 h-full w-full cursor-pointer"
           aria-label={`Play video: ${title}`}
         >
-          {/* Custom poster layer — high-quality frame from the video */}
+          {/* Custom poster layer — hqdefault always exists (maxres 404s on some videos) */}
           <img
-            src={`https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`}
+            src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
             alt=""
             aria-hidden="true"
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover opacity-80 transition-all duration-700 group-hover/video:scale-[1.03] group-hover/video:opacity-100"
-            onError={(e) => {
-              // maxres doesn't exist for some videos — fall back to hq
-              const img = e.currentTarget
-              if (!img.src.includes('hqdefault')) img.src = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
-            }}
           />
           {/* Readability + brand tint */}
           <div className="absolute inset-0 bg-gradient-to-t from-base/90 via-base/20 to-transparent" aria-hidden="true" />
