@@ -66,9 +66,8 @@ function loadLocal(): Overrides {
 }
 
 async function loadRemote(): Promise<Overrides> {
-  /* The overrides API only exists on the Vercel deployment. In local dev the
-   * request would fail with 404/500 and spam the console, so skip it. */
-  if (import.meta.env.DEV) return {}
+  /* Served by the Vercel function in prod and by the Vite dev middleware
+   * locally — both return empty overrides when no storage is configured. */
   try {
     const res = await fetch(`${API_ENDPOINT}?t=${Date.now()}`, { cache: 'no-store' })
     if (res.ok) {
@@ -81,6 +80,12 @@ async function loadRemote(): Promise<Overrides> {
   return {}
 }
 
+/**
+ * Server overrides win. localStorage edits are applied only for keys the
+ * server hasn't published yet — so an admin sees their draft instantly while
+ * everyone else sees the published state, and once a change is published
+ * every visitor (including the admin) converges on it.
+ */
 function mergeOverrides(local: Overrides, remote: Overrides): Overrides {
   return {
     bio: remote.bio ?? local.bio,
@@ -124,16 +129,39 @@ function computeData(o: Overrides): SiteData {
 
 const SiteDataContext = createContext<SiteData>(computeData({}))
 
+/**
+ * Live content source. Pulls the published overrides from the server on
+ * mount and polls every few seconds, so admin changes appear for every
+ * visitor without a reload.
+ */
 export function SiteDataProvider({ children }: { children: ReactNode }) {
   const [overrides, setOverrides] = useState<Overrides>({})
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([loadLocal(), loadRemote()]).then(([local, remote]) => {
-      if (!cancelled) setOverrides(mergeOverrides(local, remote))
-    })
+    let timer: ReturnType<typeof setTimeout>
+
+    const refresh = async () => {
+      const [local, remote] = await Promise.all([Promise.resolve(loadLocal()), loadRemote()])
+      if (!cancelled) {
+        setOverrides(mergeOverrides(local, remote))
+        // Continue polling only while the tab is visible
+        if (!cancelled && !document.hidden) {
+          timer = setTimeout(refresh, POLL_MS)
+        } else if (!cancelled) {
+          document.addEventListener('visibilitychange', onceVisible, { once: true })
+        }
+      }
+    }
+
+    const onceVisible = () => {
+      if (!document.hidden && !cancelled) refresh()
+    }
+
+    refresh()
     return () => {
       cancelled = true
+      clearTimeout(timer)
     }
   }, [])
 
@@ -142,11 +170,49 @@ export function SiteDataProvider({ children }: { children: ReactNode }) {
   return <SiteDataContext.Provider value={data}>{children}</SiteDataContext.Provider>
 }
 
+const POLL_MS = 5000
+
 export function useSiteData(): SiteData {
   return useContext(SiteDataContext)
 }
 
-/** True when the current browser has unpublished local edits waiting for deploy */
+/** Read the current published overrides (used by the admin dashboard) */
+export async function fetchPublishedOverrides(): Promise<Overrides> {
+  return loadRemote()
+}
+
+/**
+ * Publish overrides for everyone. Sends the full merged payload to the
+ * server (Upstash Redis via the API) and clears this browser's local draft.
+ */
+export async function publishOverrides(next: Overrides): Promise<boolean> {
+  try {
+    const res = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-key': ADMIN_PUBLISH_KEY,
+      },
+      body: JSON.stringify(next),
+    })
+    if (!res.ok) return false
+    try {
+      localStorage.removeItem(LS_KEY)
+    } catch {
+      /* private mode */
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Shared between the dashboard and the API route. */
+export const ADMIN_PUBLISH_KEY = 'khalidscut-admin-2026'
+
+/**
+ * True when the current browser has a local draft (admin pre-publish view).
+ */
 export function useHasLocalEdits(): boolean {
   try {
     return !!localStorage.getItem(LS_KEY)

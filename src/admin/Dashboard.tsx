@@ -15,9 +15,17 @@ import {
   ArrowLeft,
   Upload,
   Loader2,
-  MonitorSmartphone,
+  Globe,
+  AlertTriangle,
 } from 'lucide-react'
-import { useSiteData, extractYouTubeId, isSafeMediaUrl, type Overrides } from '@/lib/store'
+import {
+  useSiteData,
+  extractYouTubeId,
+  isSafeMediaUrl,
+  publishOverrides,
+  fetchPublishedOverrides,
+  type Overrides,
+} from '@/lib/store'
 import type { AdminProject, AdminSocial, AdminSkill } from '@/lib/content'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -39,49 +47,54 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>('videos')
   const [toast, setToast] = useState<string | null>(null)
 
-  /* Local draft of overrides; saved to localStorage (and attempted to the API) */
+  /* Local draft: keeps admin edits visible between save operations. Saving
+   * publishes to the server so every visitor picks the change up via polling. */
   const [draft, setDraft] = useState<Overrides>({})
   const [saving, setSaving] = useState(false)
+  const [publishError, setPublishError] = useState(false)
 
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 2600)
   }
 
+  /**
+   * Publish a patch for all visitors: merge with the current published
+   * payload (so unrelated keys survive), send it to the server, and keep a
+   * local copy so the admin sees the change instantly without waiting for
+   * the next poll.
+   */
   const save = async (patch: Overrides, message: string) => {
     setSaving(true)
+    setPublishError(false)
     const next: Overrides = { ...draft, ...patch }
     setDraft(next)
+
     try {
-      /* Merge into whatever is already stored so separate saves don't clobber
-       * each other, then persist locally (applies instantly in this browser)
-       * and POST to the serverless endpoint (persists for everyone when KV is
-       * configured on Vercel). */
-      let prev: Overrides = {}
-      try {
-        prev = JSON.parse(localStorage.getItem('khalidscut:overrides') || '{}')
-      } catch {
-        /* empty */
-      }
+      const published = await fetchPublishedOverrides()
       const merged: Overrides = {
-        ...prev,
+        ...published,
         ...next,
-        videoLinks: { ...prev.videoLinks, ...next.videoLinks },
-        projects: { ...prev.projects, ...next.projects },
+        videoLinks: { ...published.videoLinks, ...next.videoLinks },
+        projects: { ...published.projects, ...next.projects },
       }
-      localStorage.setItem('khalidscut:overrides', JSON.stringify(merged))
-      if (!import.meta.env.DEV) {
-        await fetch('/api/overrides', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(merged),
-        }).catch(() => undefined) // static hosting — localStorage still applies
+
+      const ok = await publishOverrides(merged)
+      if (!ok) {
+        // Server unreachable / not configured — keep the change locally so
+        // the admin's view stays consistent, and surface a warning.
+        try {
+          localStorage.setItem('khalidscut:overrides', JSON.stringify(merged))
+        } catch {
+          /* storage full / private mode */
+        }
+        setPublishError(true)
+        showToast('Saved locally — could not reach the server')
+        return
       }
-    } catch {
-      /* storage full / private mode */
+      showToast(message)
     } finally {
       setSaving(false)
-      showToast(message)
     }
   }
 
@@ -123,14 +136,17 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
             </span>
             <div>
               <h1 className="display-title text-xl md:text-2xl">Studio Dashboard</h1>
-              <p className="mono-tag">Edit what visitors see</p>
+              <p className="mono-tag flex items-center gap-1.5">
+                <Globe className="h-3 w-3 text-mint" aria-hidden="true" />
+                Saving publishes live to every visitor
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {saving && (
               <span className="flex items-center gap-2 text-sm text-ink-faint">
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                Saving…
+                Publishing…
               </span>
             )}
             <a href="#home" className="btn-outline px-4 py-2 text-sm">
@@ -184,6 +200,27 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
             {tab === 'socials' && <SocialsEditor socials={data.socials} onSave={(socials) => save({ socials }, 'Social links saved')} />}
             {tab === 'skills' && <SkillsEditor skills={data.skills} onSave={(skills) => save({ skills }, 'Expertise saved')} />}
           </motion.div>
+        </AnimatePresence>
+
+        {/* Publish-failure warning */}
+        <AnimatePresence>
+          {publishError && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-500"
+              role="alert"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="font-medium">Publish failed — change is only visible to you.</p>
+                <p className="mt-0.5 opacity-80">
+                  On Vercel: add Upstash Redis (Marketplace → Storage) and set ADMIN_PUBLISH_KEY, then redeploy.
+                </p>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* Toast */}
@@ -549,16 +586,6 @@ function SkillsEditor({ skills, onSave }: { skills: AdminSkill[]; onSave: (skill
         <Check className="h-4 w-4" aria-hidden="true" />
         Save expertise
       </Button>
-    </div>
-  )
-}
-
-/* Published-state hint */
-export function PublishHint() {
-  return (
-    <div className="flex items-center gap-2 text-xs text-ink-faint">
-      <MonitorSmartphone className="h-3.5 w-3.5" aria-hidden="true" />
-      Edits save to this browser instantly. To publish for everyone, the saved JSON is deployed with the site.
     </div>
   )
 }
