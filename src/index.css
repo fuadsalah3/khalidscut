@@ -1,0 +1,240 @@
+@import "tailwindcss";
+
+/* ============================================================
+   "CINEMA SUITE" DESIGN SYSTEM
+   A video editor's portfolio styled like a color-grading suite:
+   warm carbon surfaces, signal-orange accent, teal scope color,
+   mono timecode details. Dark first, light second.
+   ============================================================ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Runtime theme tokens — flip via .dark on <html> */
+@theme inline {
+  --color-base: var(--base);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-flame: var(--flame);
+  --color-flame-deep: var(--flame-deep);
+  --color-on-flame: var(--on-flame);
+  --color-mint: var(--mint);
+  --color-mint-deep: var(--mint-deep);
+}
+
+/* Dark theme (default) */
+:root,
+.dark {
+  --base: #0a0908;
+  --panel: #121110;
+  --raised: #1a1815;
+  --ink: #f4f1ea;
+  --ink-soft: #a8a29a;
+  --ink-faint: #6f6a62;
+  --line: rgb(244 241 234 / 0.08);
+  --line-strong: rgb(244 241 234 / 0.16);
+  --flame: #ff6a2e;
+  --flame-deep: #e2570e;
+  --on-flame: #1a0d03;
+  --mint: #2dd4bf;
+  --mint-deep: #14b8a6;
+  color-scheme: dark;
+}
+
+/* Light theme — warm paper */
+.light {
+  --base: #f6f4ef;
+  --panel: #fffefb;
+  --raised: #eeebe3;
+  --ink: #17150f;
+  --ink-soft: #57534a;
+  --ink-faint: #8a857a;
+  --line: rgb(23 21 15 / 0.1);
+  --line-strong: rgb(23 21 15 / 0.22);
+  --flame: #e2570e;
+  --flame-deep: #c74a08;
+  --on-flame: #fff7ef;
+  --mint: #0d9488;
+  --mint-deep: #0f766e;
+  color-scheme: light;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --shadow-glow-flame: 0 8px 40px -12px rgb(255 106 46 / 0.55);
+  --shadow-glow-mint: 0 8px 40px -12px rgb(45 212 191 / 0.45);
+  --shadow-lift: 0 20px 50px -24px rgb(0 0 0 / 0.55);
+
+  --animate-float: float 8s ease-in-out infinite;
+  --animate-marquee: marquee 32s linear infinite;
+  --animate-blink: blink 1.4s ease-in-out infinite;
+  --animate-scan: scan 7s linear infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+  @keyframes scan {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 6rem;
+  }
+
+  body {
+    @apply bg-base font-sans text-ink antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--flame);
+    color: var(--on-flame);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--base);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 999px;
+    border: 2px solid var(--base);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--flame-deep);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--flame);
+    outline-offset: 2px;
+  }
+
+  /* Film grain over everything, very subtle */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .light body::after {
+    opacity: 0.03;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Layout */
+  .u-container {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+  .u-section {
+    @apply py-24 md:py-32;
+  }
+
+  /* Typography helpers */
+  .mono-tag {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-ink-faint;
+  }
+  .display-title {
+    @apply font-display font-bold tracking-[-0.03em];
+  }
+
+  /* Surfaces */
+  .panel {
+    @apply rounded-2xl border border-line bg-panel;
+  }
+  .panel-hover {
+    @apply transition-all duration-300 hover:-translate-y-0.5 hover:border-flame/40 hover:shadow-lift;
+  }
+
+  /* Chips & badges */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-ink-soft;
+  }
+
+  /* Buttons — base styles repeated per variant (v4 can't @apply custom classes) */
+  .btn,
+  .btn-primary,
+  .btn-outline,
+  .btn-ghost {
+    @apply inline-flex select-none items-center justify-center gap-2.5 rounded-full font-display text-sm font-semibold tracking-wide transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-flame text-on-flame hover:bg-flame-deep active:scale-[0.98];
+  }
+  .btn-outline {
+    @apply border border-line-strong text-ink hover:border-flame/60 hover:text-flame active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply text-ink-soft hover:bg-raised hover:text-ink active:scale-[0.98];
+  }
+
+  /* Form controls */
+  .field {
+    @apply w-full rounded-xl border border-line bg-raised px-4 py-3 text-[15px] text-ink transition-colors duration-200 outline-none placeholder:text-ink-faint focus:border-flame/60 focus:ring-2 focus:ring-flame/20;
+  }
+  .field-label {
+    @apply mb-1.5 block text-[13px] font-medium text-ink-soft;
+  }
+
+  /* Decorative utilities */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, var(--line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  .rail-ticks {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      var(--line-strong) 0 1px,
+      transparent 1px 14px
+    );
+  }
+  .hairline {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-line-strong to-transparent;
+  }
+  .text-gradient-flame {
+    @apply bg-gradient-to-r from-flame-deep via-flame to-mint bg-clip-text text-transparent;
+  }
+}
